@@ -1,3 +1,4 @@
 anthropic
 streamlit
 requests
+google-generativeai
