@@ -698,7 +698,7 @@ with col1:
     if triggered:
         if not query.strip():
             st.error("Please tell me what you want!"); st.stop()
-        if not CLAUDE_KEY and not GEMINI_KEY:
+        if not CLAUDE_KEY and not GROQ_KEY:
             st.error("System not configured — contact admin."); st.stop()
         if not can_q:
             st.error("🔒 Daily limit reached!"); st.stop()
