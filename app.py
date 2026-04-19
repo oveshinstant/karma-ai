@@ -6,7 +6,6 @@ import os
 import hashlib
 import uuid
 from datetime import datetime, date
-import google.generativeai as genai
 
 # ─────────────────────────────────────────
 # PAGE CONFIG
@@ -51,8 +50,6 @@ CLAUDE_KEY     = get_secret("CLAUDE_API_KEY")
 PERPLEXITY_KEY = get_secret("PERPLEXITY_API_KEY")
 GEMINI_KEY     = get_secret("GEMINI_API_KEY")
 
-if GEMINI_KEY:
-    genai.configure(api_key=GEMINI_KEY)
 
 # ─────────────────────────────────────────
 # CONSTANTS
@@ -240,43 +237,27 @@ def get_research(query):
 # ─────────────────────────────────────────
 # AI ENGINES
 # ─────────────────────────────────────────
+
 def run_gemini(prompt, max_tokens=800):
-    if not GEMINI_KEY: return None
+    """Pure REST API — no SDK needed"""
+    if not GEMINI_KEY:
+        return None
     try:
-        # Try new SDK style first
-        try:
-            from google import genai as new_genai
-            client = new_genai.Client(api_key=GEMINI_KEY)
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt
-            )
-            return response.text
-        except Exception:
-            pass
-
-        # Fallback: old SDK style
-        try:
-            genai.configure(api_key=GEMINI_KEY)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            resp  = model.generate_content(prompt)
-            return resp.text
-        except Exception:
-            pass
-
-        # Fallback 2: direct REST API
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+        )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": max_tokens}
+            "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7}
         }
         resp = requests.post(url, json=payload, timeout=30)
         resp.raise_for_status()
         data = resp.json()
         return data["candidates"][0]["content"]["parts"][0]["text"]
-
-    except Exception as e:
+    except Exception:
         return None
+
 
 def run_claude(prompt, max_tokens=2500):
     if not CLAUDE_KEY: return None,"no_key"
