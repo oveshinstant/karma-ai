@@ -239,8 +239,8 @@ def get_research(query):
 # ─────────────────────────────────────────
 
 def run_gemini(prompt, max_tokens=800):
-    """Pure REST API — no SDK needed"""
     if not GEMINI_KEY:
+        st.sidebar.error("GEMINI_KEY missing in secrets")
         return None
     try:
         url = (
@@ -252,12 +252,32 @@ def run_gemini(prompt, max_tokens=800):
             "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7}
         }
         resp = requests.post(url, json=payload, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            st.sidebar.error(f"Gemini HTTP {resp.status_code}: {resp.text[:150]}")
+            return None
         data = resp.json()
         return data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception:
+    except Exception as e:
+        st.sidebar.error(f"Gemini error: {str(e)[:150]}")
         return None
 
+def run_claude(prompt, max_tokens=2500):
+    if not CLAUDE_KEY:
+        st.sidebar.error("CLAUDE_KEY missing in secrets")
+        return None, "no_key"
+    try:
+        client = anthropic.Anthropic(api_key=CLAUDE_KEY)
+        msg = client.messages.create(
+            model="claude-opus-4-5", max_tokens=max_tokens,
+            messages=[{"role":"user","content":prompt}]
+        )
+        return msg.content[0].text, "claude"
+    except anthropic.AuthenticationError:
+        st.sidebar.error("Claude: Auth error — key galat hai")
+        return None, "auth_error"
+    except Exception as e:
+        st.sidebar.error(f"Claude error: {str(e)[:150]}")
+        return None, str(e)
 
 def run_claude(prompt, max_tokens=2500):
     if not CLAUDE_KEY: return None,"no_key"
