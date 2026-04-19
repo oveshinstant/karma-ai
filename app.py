@@ -245,7 +245,7 @@ def run_gemini(prompt, max_tokens=800):
     try:
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+            f"gemini-2.0-flash-lite:generateContent?key={GEMINI_KEY}"
         )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
