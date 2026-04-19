@@ -243,13 +243,40 @@ def get_research(query):
 def run_gemini(prompt, max_tokens=800):
     if not GEMINI_KEY: return None
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        resp  = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(max_output_tokens=max_tokens)
-        )
-        return resp.text
-    except: return None
+        # Try new SDK style first
+        try:
+            from google import genai as new_genai
+            client = new_genai.Client(api_key=GEMINI_KEY)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            )
+            return response.text
+        except Exception:
+            pass
+
+        # Fallback: old SDK style
+        try:
+            genai.configure(api_key=GEMINI_KEY)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            resp  = model.generate_content(prompt)
+            return resp.text
+        except Exception:
+            pass
+
+        # Fallback 2: direct REST API
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"maxOutputTokens": max_tokens}
+        }
+        resp = requests.post(url, json=payload, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+
+    except Exception as e:
+        return None
 
 def run_claude(prompt, max_tokens=2500):
     if not CLAUDE_KEY: return None,"no_key"
