@@ -49,6 +49,7 @@ def get_secret(key):
 CLAUDE_KEY     = get_secret("CLAUDE_API_KEY")
 PERPLEXITY_KEY = get_secret("PERPLEXITY_API_KEY")
 GEMINI_KEY     = get_secret("GEMINI_API_KEY")
+GROQ_KEY       = get_secret("GROQ_API_KEY")
 
 
 # ─────────────────────────────────────────
@@ -239,26 +240,29 @@ def get_research(query):
 # ─────────────────────────────────────────
 
 def run_gemini(prompt, max_tokens=800):
-    if not GEMINI_KEY:
-        st.sidebar.error("GEMINI_KEY missing in secrets")
+    """Groq API — fast, free, reliable"""
+    if not GROQ_KEY:
+        st.sidebar.error("GROQ_KEY missing in secrets")
         return None
     try:
-        url = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash-lite:generateContent?key={GEMINI_KEY}"
-        )
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7}
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {GROQ_KEY}",
+            "Content-Type": "application/json"
         }
-        resp = requests.post(url, json=payload, timeout=30)
+        payload = {
+            "model": "llama-3.1-8b-instant",
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": 0.7
+        }
+        resp = requests.post(url, json=payload, headers=headers, timeout=30)
         if resp.status_code != 200:
-            st.sidebar.error(f"Gemini HTTP {resp.status_code}: {resp.text[:150]}")
+            st.sidebar.error(f"Groq HTTP {resp.status_code}: {resp.text[:150]}")
             return None
-        data = resp.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+        return resp.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        st.sidebar.error(f"Gemini error: {str(e)[:150]}")
+        st.sidebar.error(f"Groq error: {str(e)[:150]}")
         return None
 
 def run_claude(prompt, max_tokens=2500):
@@ -736,10 +740,10 @@ with col1:
 
         if plan is None:
             st.error(f"❌ AI error: {model_used}")
-            st.error(f"Claude key: {'✅ Set' if CLAUDE_KEY else '❌ Missing'} | Gemini key: {'✅ Set' if GEMINI_KEY else '❌ Missing'}")
+            st.error(f"Claude key: {'✅ Set' if CLAUDE_KEY else '❌ Missing'} | Groq key: {'✅ Set' if GROQ_KEY else '❌ Missing'}")
             # Test Gemini directly
             test = run_gemini("say hello", 50)
-            st.error(f"Gemini test: {'✅ Working' if test else '❌ Failed'}")
+            st.error(f"Groq test: {'✅ Working' if test else '❌ Failed'}")
             st.session_state.workflow_stage="idle"
             st.stop()
 
