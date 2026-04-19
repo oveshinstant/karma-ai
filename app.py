@@ -735,7 +735,13 @@ with col1:
             )
 
         if plan is None:
-            st.error("❌ AI error — try again."); st.session_state.workflow_stage="idle"; st.stop()
+            st.error(f"❌ AI error: {model_used}")
+            st.error(f"Claude key: {'✅ Set' if CLAUDE_KEY else '❌ Missing'} | Gemini key: {'✅ Set' if GEMINI_KEY else '❌ Missing'}")
+            # Test Gemini directly
+            test = run_gemini("say hello", 50)
+            st.error(f"Gemini test: {'✅ Working' if test else '❌ Failed'}")
+            st.session_state.workflow_stage="idle"
+            st.stop()
 
         with st.spinner("💾 Saving..."):
             cache_set(cache_key, plan)
